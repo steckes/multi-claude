@@ -69,3 +69,48 @@ MULTICLAUDE_BIN_DIR=/usr/local/bin ./multiclaude-setup.sh
 ## Editor integration
 
 Tools that launch Claude Code as an agent (e.g. Zed's ACP integration) can use the same trick directly — just set the `CLAUDE_CONFIG_DIR` environment variable per agent config, pointing at the matching `~/.<name>` directory, instead of going through the wrapper script.
+
+### Zed on Arch Linux
+
+Zed talks to Claude Code over [ACP](https://agentclientprotocol.com) via a separate binary, [`claude-agent-acp`](https://www.npmjs.com/package/@agentclientprotocol/claude-agent-acp). It's built on the same SDK as the `claude` CLI, so it honors `CLAUDE_CONFIG_DIR` the same way.
+
+1. Install it:
+
+   ```bash
+   npm install -g @agentclientprotocol/claude-agent-acp
+   ```
+
+2. Find where it landed:
+
+   ```bash
+   which claude-agent-acp
+   # or, if it's not on PATH:
+   echo "$(npm root -g)/../bin/claude-agent-acp"
+   ```
+
+3. Log in to each profile from the terminal first (`work`, `personal`, ...) — `claude-agent-acp` doesn't drive an interactive login itself, so credentials need to already exist in each `~/.<name>` directory.
+
+4. Add one `agent_servers` entry per profile to Zed's `settings.json` (`~/.config/zed/settings.json`), pointing `command` at the path from step 2 and `env.CLAUDE_CONFIG_DIR` at the matching config directory:
+
+   ```json
+   "agent_servers": {
+     "Claude Work": {
+       "type": "custom",
+       "command": "/home/you/.npm-global/bin/claude-agent-acp",
+       "args": [],
+       "env": {
+         "CLAUDE_CONFIG_DIR": "/home/you/.work"
+       }
+     },
+     "Claude Personal": {
+       "type": "custom",
+       "command": "/home/you/.npm-global/bin/claude-agent-acp",
+       "args": [],
+       "env": {
+         "CLAUDE_CONFIG_DIR": "/home/you/.personal"
+       }
+     }
+   }
+   ```
+
+Each entry shows up as its own option in Zed's Agent panel. Selecting one spawns `claude-agent-acp` with that entry's `env`, so it only ever sees the credentials, history, and settings from its own config directory.
